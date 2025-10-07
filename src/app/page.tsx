@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type PositionKey =
   | 'primary'
@@ -42,29 +43,20 @@ const POSITIONS: {
     color: 'bg-emerald-300 border-emerald-400',
     cap: 1,
   },
-
-  // merged primary section with capacity 2
   {
     key: 'primary',
-    label: 'Primary (2 spots)',
-    color: 'bg-cyan-500 text-white border-cyan-600',
+    label: 'Primary',
+    color: 'bg-cyan-500 text-black border-cyan-600',
     height: 'h-20',
-    cap: 2,
+    cap: 3,
   },
 
   {
     key: 'secondary',
     label: 'Secondary',
-    color: 'bg-rose-600 text-white border-rose-700',
+    color: 'bg-rose-600 text-gray-700 border-rose-700',
     height: 'h-16',
-    cap: 1,
-  },
-  {
-    key: 'secondSecondary',
-    label: 'Second Secondary',
-    color: 'bg-rose-200 border-rose-300',
-    height: 'h-12',
-    cap: 1,
+    cap: 2,
   },
 
   {
@@ -77,36 +69,12 @@ const POSITIONS: {
     key: 'breading',
     label: 'Breading',
     color: 'bg-amber-200 border-amber-300',
-    cap: 1,
+    cap: 3,
   },
   {
     key: 'eggs',
     label: 'Eggs',
     color: 'bg-rose-500 text-white border-rose-600',
-    cap: 1,
-  },
-  {
-    key: 'table1',
-    label: 'Table #1',
-    color: 'bg-amber-300 border-amber-400',
-    cap: 1,
-  },
-  {
-    key: 'table2',
-    label: 'Table #2',
-    color: 'bg-amber-300 border-amber-400',
-    cap: 1,
-  },
-  {
-    key: 'rotation',
-    label: 'Rotation',
-    color: 'bg-amber-400 border-amber-500',
-    cap: 1,
-  },
-  {
-    key: 'secondBreading',
-    label: 'Second Breading',
-    color: 'bg-amber-100 border-amber-200',
     cap: 1,
   },
   { key: 'buns', label: 'Buns', color: 'bg-zinc-200 border-zinc-300', cap: 1 },
@@ -241,48 +209,6 @@ export default function BOHGamePlanBoard() {
     });
   };
 
-  // const [gamePlan, setGamePlan] = useState<PlanMap>(() => {
-  //   const init = {} as PlanMap;
-  //   POSITIONS.forEach((p) => (init[p.key] = []));
-  //   return init;
-  // });
-  // const [employees] = useState<string[]>(SAMPLE_EMPLOYEES);
-  // const [notes, setNotes] = useState<string>('');
-
-  // useEffect(() => {
-  //   try {
-  //     const raw = localStorage.getItem('boh_gameplan_board_v2');
-  //     if (raw) {
-  //       const parsed = JSON.parse(raw);
-  //       if (parsed?.gamePlan) setGamePlan(parsed.gamePlan);
-  //       if (parsed?.notes) setNotes(parsed.notes);
-  //     }
-  //   } catch {}
-  // }, []);
-
-  // const save = () => {
-  //   localStorage.setItem(
-  //     'boh_gameplan_board_v2',
-  //     JSON.stringify({ gamePlan, notes })
-  //   );
-  //   alert('Saved locally');
-  // };
-
-  // // helpers
-  // const removeEverywhere = (emp: string) => {
-  //   setGamePlan((g) => {
-  //     const copy: PlanMap = { ...g } as PlanMap;
-  //     (Object.keys(copy) as PositionKey[]).forEach((k) => {
-  //       copy[k] = copy[k].filter((e) => e !== emp);
-  //     });
-  //     return copy;
-  //   });
-  // };
-
-  // const onDragStart = (e: React.DragEvent, employee: string) => {
-  //   e.dataTransfer.setData('text/plain', employee);
-  // };
-
   const onDrop = (e: React.DragEvent, pos: PositionKey) => {
     e.preventDefault();
     const emp = e.dataTransfer.getData('text/plain');
@@ -314,48 +240,50 @@ export default function BOHGamePlanBoard() {
   const removeFromPos = (pos: PositionKey, emp: string) =>
     setGamePlan((g) => ({ ...g, [pos]: g[pos].filter((e) => e !== emp) }));
 
+  const router = useRouter();
+  const rosterRedirect = () => {
+    router.push('/roster');
+  }
+
   return (
     <div className="min-h-screen bg-neutral-400 p-6">
       <div className="mx-8 grid grid-cols-12 gap-6 text-gray-800">
-        {/* Left — Roster */}
+        {/* ---- Left — Roster ---- */}
         <aside className="col-span-2">
-          <div className="bg-white rounded-xl shadow p-4">
-            <h2 className="font-semibold mb-3">Employee Roster</h2>
-            <div className="p-4 bg-gray-100 rounded-lg">
-              <h2 className="font-semibold mb-2">Employee Roster</h2>
-              <div className="flex mb-2">
-                <input
-                  type="text"
-                  value={newEmployee}
-                  onChange={(e) => setNewEmployee(e.target.value)}
-                  placeholder="Enter name"
-                  className="flex-1 border rounded-l p-2"
-                />
-                <button
-                  onClick={addEmployee}
-                  className="bg-blue-600 text-white px-3 rounded-r"
+          <div className="p-4 bg-gray-100 rounded-lg">
+            <h2 className="font-semibold mb-2">Employee Roster</h2>
+            {/* <div className="flex mb-2">
+              <input
+                type="text"
+                value={newEmployee}
+                onChange={(e) => setNewEmployee(e.target.value)}
+                placeholder="Enter name"
+                className="flex-1 border rounded-l p-2"
+              />
+              <button
+                onClick={addEmployee}
+                className="bg-blue-600 text-white px-3 rounded-r"
+              >
+                Add
+              </button>
+            </div> */}
+            <div className="space-y-2">
+              {employees.map((emp) => (
+                <div
+                  key={emp}
+                  draggable
+                  onDragStart={(e) => onDragStartEmployee(e, emp)}
+                  className="cursor-grab bg-white px-3 py-2 rounded-md shadow-sm flex justify-between items-center"
                 >
-                  Add
-                </button>
-              </div>
-              <div className="space-y-2">
-                {employees.map((emp) => (
-                  <div
-                    key={emp}
-                    draggable
-                    onDragStart={(e) => onDragStartEmployee(e, emp)}
-                    className="cursor-grab bg-white px-3 py-2 rounded-md shadow-sm flex justify-between items-center"
+                  <span>{emp}</span>
+                  <button
+                    onClick={() => removeEmployee(emp)}
+                    className="text-xs text-red-500"
                   >
-                    <span>{emp}</span>
-                    <button
-                      onClick={() => removeEmployee(emp)}
-                      className="text-xs text-red-500"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
 
             <div className="mt-4">
@@ -363,34 +291,18 @@ export default function BOHGamePlanBoard() {
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="mt-2 w-full p-2 border rounded"
+                className="w-full mt-2 p-2 rounded border-gray-200"
                 rows={6}
               />
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={save}
-                  className="px-3 py-2 rounded bg-emerald-600 text-white"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => {
-                    const blob = new Blob(
-                      [JSON.stringify({ gamePlan, notes }, null, 2)],
-                      { type: 'application/json' }
-                    );
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `gameplan-${new Date().toISOString()}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="px-3 py-2 rounded bg-blue-600 text-white"
-                >
-                  Export JSON
-                </button>
-              </div>
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={rosterRedirect}
+                className="flex-1 bg-blue-600 text-white px-3 py-2 rounded cursor-pointer"
+              >
+                New Roster
+              </button>
             </div>
           </div>
         </aside>
@@ -447,7 +359,7 @@ export default function BOHGamePlanBoard() {
               <BoardBox
                 posKey="primary"
                 label="Primary"
-                color="bg-cyan-500 text-white border-cyan-600"
+                color="bg-cyan-500  border-cyan-600"
                 className="col-span-3 row-start-3"
                 onDrop={onDrop}
                 onDragOver={allow}
@@ -475,7 +387,7 @@ export default function BOHGamePlanBoard() {
               <BoardBox
                 posKey="secondary"
                 label="Secondary"
-                color="bg-rose-600 text-white border-rose-700"
+                color="bg-rose-600 border-rose-700"
                 className="col-span-3 row-start-4"
                 onDrop={onDrop}
                 onDragOver={allow}
