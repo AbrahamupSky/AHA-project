@@ -1,6 +1,15 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
+
+const swalWithBootstrapButtons = Swal.mixin({
+  customClass: {
+    confirmButton: 'btn btn-success',
+    cancelButton: 'btn btn-danger',
+  },
+  buttonsStyling: false,
+});
 
 type PositionKey =
   | 'primary'
@@ -80,21 +89,6 @@ const POSITIONS: {
   { key: 'buns', label: 'Buns', color: 'bg-zinc-200 border-zinc-300', cap: 1 },
 ];
 
-// const SAMPLE_EMPLOYEES = [
-//   'Chris',
-//   'Alex',
-//   'Hayden',
-//   'Melissa',
-//   'Camila',
-//   'Josh',
-//   'Sarah',
-//   'Evan',
-//   'Taylor',
-//   'Jordan',
-//   'Gabriela',
-//   'Luis',
-// ];
-
 const removeEmployee = (name: string) => {
   setEmployees((prev) => prev.filter((e) => e !== name));
   // also unassign from board
@@ -127,12 +121,22 @@ export default function BOHGamePlanBoard() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('boh_gameplan_v2');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed?.gamePlan) setGamePlan(parsed.gamePlan);
-        if (parsed?.notes) setGamePlan(parsed.notes);
-        if (parsed?.employees) setGamePlan(parsed.employees);
-      }
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+
+      // SAFELY merge so every key exists as an array
+      const loaded = (parsed?.gamePlan ?? {}) as Partial<
+        Record<PositionKey, string[]>
+      >;
+      const merged: Record<PositionKey, string[]> = {} as any;
+      POSITIONS.forEach((p) => {
+        const val = loaded[p.key];
+        merged[p.key] = Array.isArray(val) ? val : [];
+      });
+
+      setGamePlan(merged);
+      if (typeof parsed?.notes === 'string') setNotes(parsed.notes); // ✅ correct setter
+      if (Array.isArray(parsed?.employees)) setEmployees(parsed.employees); // ✅ correct setter
     } catch {}
   }, []);
 
@@ -141,16 +145,42 @@ export default function BOHGamePlanBoard() {
       'boh_gameplan_v2',
       JSON.stringify({ gamePlan, notes, employees })
     );
-    alert('Saved locally');
+    Swal.fire({
+      title: 'Saved locally',
+      icon: 'success',
+    });
   };
 
   const clear = () => {
-    if (!confirm('Clear all assigments?')) return;
-    const empty: Record<PositionKey, string[]> = {} as any;
-    POSITIONS.forEach((p) => (empty[p.key] = []));
-    setGamePlan(empty);
-    setNotes('');
-    setEmployees([]);
+    swalWithBootstrapButtons
+      .fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, cancel!',
+      })
+      .then((result) => {
+        if (result.isConfirmed) {
+          const empty: Record<PositionKey, string[]> = {} as any;
+          POSITIONS.forEach((p) => (empty[p.key] = []));
+          setGamePlan(empty);
+          setNotes('');
+          setEmployees([]);
+          swalWithBootstrapButtons.fire({
+            title: 'Deleted!',
+            text: 'All assignments have been cleared.',
+            icon: 'success',
+          });
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+          swalWithBootstrapButtons.fire({
+            title: 'Cancelled',
+            text: 'Your data is safe.',
+            icon: 'error',
+          });
+        }
+      });
   };
 
   const addEmployee = () => {
@@ -243,7 +273,7 @@ export default function BOHGamePlanBoard() {
   const router = useRouter();
   const rosterRedirect = () => {
     router.push('/roster');
-  }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-400 p-6">
@@ -252,21 +282,24 @@ export default function BOHGamePlanBoard() {
         <aside className="col-span-2">
           <div className="p-4 bg-gray-100 rounded-lg">
             <h2 className="font-semibold mb-2">Employee Roster</h2>
-            {/* <div className="flex mb-2">
+            <div className="flex mb-2">
               <input
                 type="text"
                 value={newEmployee}
                 onChange={(e) => setNewEmployee(e.target.value)}
                 placeholder="Enter name"
-                className="flex-1 border rounded-l p-2"
+                className="flex-1 border rounded-l p-2 px-2 text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addEmployee();
+                }}
               />
               <button
                 onClick={addEmployee}
-                className="bg-blue-600 text-white px-3 rounded-r"
+                className="bg-blue-600 text-white px-3 rounded-r sm:px-4 py-2 text-sm cursor-pointer"
               >
                 Add
               </button>
-            </div> */}
+            </div>
             <div className="space-y-2">
               {employees.map((emp) => (
                 <div
@@ -298,10 +331,16 @@ export default function BOHGamePlanBoard() {
 
             <div className="mt-4 flex gap-2">
               <button
-                onClick={rosterRedirect}
-                className="flex-1 bg-blue-600 text-white px-3 py-2 rounded cursor-pointer"
+                onClick={save}
+                className="bg-green-600 text-white px-3 py-2 rounded text-sm flex-1"
               >
-                New Roster
+                Save
+              </button>
+              <button
+                onClick={clear}
+                className="bg-red-600 text-white px-3 py-2 rounded text-sm flex-1"
+              >
+                Clear All
               </button>
             </div>
           </div>
@@ -438,7 +477,7 @@ export default function BOHGamePlanBoard() {
                 <li key={p.key} className="flex justify-between">
                   <span>{p.label}</span>
                   <span className="font-medium">
-                    {gamePlan[p.key].length ? gamePlan[p.key].join(', ') : '—'}
+                    {(gamePlan[p.key] ?? []).join(', ') || '—'}
                   </span>
                 </li>
               ))}
@@ -469,11 +508,14 @@ function BoardBox({
   className?: string;
   onDrop: (e: React.DragEvent, pos: PositionKey) => void;
   onDragOver: (e: React.DragEvent) => void;
-  people: string[];
-  cap: number;
+  people?: string[]; // <- make optional
+  cap?: number; // <- make optional
   onClear: (pos: PositionKey) => void;
   onRemove: (pos: PositionKey, emp: string) => void;
 }) {
+  const list = people ?? []; // <- default
+  const capacity = cap ?? 1; // <- default
+
   return (
     <div
       onDrop={(e) => onDrop(e, posKey)}
@@ -486,7 +528,7 @@ function BoardBox({
         </span>
         <div className="flex items-center gap-2">
           <span className="text-[10px] opacity-70">
-            {people.length}/{cap}
+            {list.length}/{capacity} {/* <- use list */}
           </span>
           <button
             onClick={() => onClear(posKey)}
@@ -498,10 +540,16 @@ function BoardBox({
       </div>
 
       <div
-        className={`mt-2 grid gap-3 ${cap > 1 ? 'grid-cols-3' : 'grid-cols-1'}`}
+        className={`mt-2 grid gap-3 ${
+          capacity === 3
+            ? 'grid-cols-3'
+            : capacity === 2
+            ? 'grid-cols-2'
+            : 'grid-cols-1'
+        }`}
       >
-        {Array.from({ length: cap }).map((_, i) => {
-          const person = people[i];
+        {Array.from({ length: capacity }).map((_, i) => {
+          const person = list[i];
           return (
             <div
               key={i}
@@ -512,7 +560,7 @@ function BoardBox({
                   <span>{person}</span>
                   <button
                     className="text-[11px] text-gray-500"
-                    onClick={(e) => onRemove(posKey, person)}
+                    onClick={() => onRemove(posKey, person)}
                   >
                     remove
                   </button>

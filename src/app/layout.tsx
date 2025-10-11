@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,6 +28,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <Script
+          src="../path/to/flowbite/dist/flowbite.min.js"
+          strategy="afterInteractive"
+        />
         {children}
       </body>
     </html>
